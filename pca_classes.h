@@ -373,38 +373,38 @@ Matrices<T> Matrices<T>::reverse(){
  
     vector <vector <double>> E;
     for (int i = 0; i < N; i++) E.push_back({});
-    vector <vector <T>> A = (*this).matrix;
+    Matrices<T> A = (*this);
     for (int i = 0; i < N; i++)
         for (int j = 0; j < N; j++){
             if (i == j)E[i].push_back(1.0);
             else E[i].push_back(0.0);
         }
     for (int k = 0; k < N; k++){
-        temp = A[k][k];
+        temp = A.matrix[k][k];
         for (int j = 0; j < N; j++){
-            A[k][j] /= temp;
+            A.matrix[k][j] /= temp;
             E[k][j] /= temp;
         }
         for (int i = k + 1; i < N; i++){
-            temp = A[i][k];
+            temp = A.matrix[i][k];
             for (int j = 0; j < N; j++){
-                A[i][j] -= A[k][j] * temp;
+                A.matrix[i][j] -= A.matrix[k][j] * temp;
                 E[i][j] -= E[k][j] * temp;
             }
         }
     }
     for (int k = N - 1; k > 0; k--){
         for (int i = k - 1; i >= 0; i--){
-            temp = A[i][k];
+            temp = A.matrix[i][k];
             for (int j = 0; j < N; j++){
-                A[i][j] -= A[k][j] * temp;
+                A.matrix[i][j] -= A.matrix[k][j] * temp;
                 E[i][j] -= E[k][j] * temp;
             }
         }
     }
  
     for (int i = 0; i < N; i++)
-        for (int j = 0; j < N; j++) A[i][j] = E[i][j];
+        for (int j = 0; j < N; j++) A.matrix[i][j] = E[i][j];
             
 return A;
 }
@@ -639,8 +639,19 @@ class PCA : public Matrices<T> {
   PCA<T> pca_remainder();
   double full_dispersion();
   double explained_dispersion();
+  void leverage();
   using Matrices<T>::operator=;
 };
+
+template <typename T>
+void PCA<T>::leverage(){
+  PCA<T> score = (*this).pca_score();
+  PCA<T> row;
+  for (int i = 0; i < (*this).rows; i++){
+    row = PCA<T>({score.matrix.at(i)});
+    cout << row * ((score.transpose() * score).reverse()) * row.transpose() << endl;
+  }
+}
 
 template <typename T>
 double PCA<T>::full_dispersion(){
