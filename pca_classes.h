@@ -640,8 +640,22 @@ class PCA : public Matrices<T> {
   double full_dispersion();
   double explained_dispersion();
   void leverage();
+  void variation();
   using Matrices<T>::operator=;
 };
+
+template <typename T>
+void PCA<T>::variation(){
+  PCA<T> remainder = (*this).pca_remainder();
+  double sum = 0;
+  for (int i = 0; i < remainder.rows; i++){
+    for (int j = 0; j < remainder.columns; j++){
+      sum += remainder.matrix.at(i).at(j);
+    }
+    cout << sum << endl;
+    sum = 0;
+  }
+}
 
 template <typename T>
 void PCA<T>::leverage(){
