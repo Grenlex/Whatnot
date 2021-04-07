@@ -637,8 +637,43 @@ class PCA : public Matrices<T> {
   PCA<T> pca_score();
   PCA<T> pca_weight();
   PCA<T> pca_remainder();
+  double full_dispersion();
+  double explained_dispersion();
   using Matrices<T>::operator=;
 };
+
+template <typename T>
+double PCA<T>::full_dispersion(){
+  double sum = 0;
+  PCA<T> remainder = (*this).pca_remainder();
+  for (int i = 0; i < remainder.rows; i++){
+    for (int j = 0; j < remainder.columns; j++){
+      sum += pow(remainder.matrix.at(i).at(j), 2);
+    }
+  }
+  sum = sum / remainder.rows * remainder.columns;
+  return sum;
+}
+
+template <typename T>
+double PCA<T>::explained_dispersion(){
+  double numerator = 0;
+  double denominator = 0;
+  double sum = 0;
+  PCA<T> remainder = (*this).pca_remainder();
+  for (int i = 0; i < remainder.rows; i++){
+    for (int j = 0; j < remainder.columns; j++){
+      numerator += pow(remainder.matrix.at(i).at(j), 2);
+    }
+  }
+  for (int i = 0; i < (*this).rows; i++){
+    for (int j = 0; j < (*this).columns; j++){
+      denominator += pow((*this).matrix.at(i).at(j), 2);
+    }
+  }
+  sum = 1 - numerator/denominator;
+  return sum;
+}
 
 template <typename T>
 PCA<T> PCA<T>::pca_score(){
