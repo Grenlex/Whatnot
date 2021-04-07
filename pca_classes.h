@@ -36,8 +36,8 @@ class Matrices {
   Matrices<T> reverse();
   Matrices<T> transpose();
   Matrices<T> adamar(Matrices<T> &);
-  template <typename T1> friend Matrices<T1> operator+ (Matrices<T1> &, Matrices<T1> &);
-  template <typename T1> friend Matrices<T1> operator- (Matrices<T1> &, Matrices<T1> &);
+  template <typename T1> friend Matrices<T1> operator+ (Matrices<T1>, Matrices<T1>);
+  template <typename T1> friend Matrices<T1> operator- (Matrices<T1>, Matrices<T1>);
   template <typename T1> friend Matrices<T1> operator* (Matrices<T1>, Matrices<T1>);
   template <typename T1> friend Matrices<T1> operator* (Matrices<T1>, const int);
   template <typename T1> friend Matrices<T1> operator/ (Matrices<T1>, const int);
@@ -134,7 +134,7 @@ stream.close();
 }
 
 template <typename T>
-Matrices<T> operator+ (Matrices<T> &m1, Matrices<T> &m2)
+Matrices<T> operator+ (Matrices<T> m1, Matrices<T> m2)
 {
     if (m1.rows == m2.rows && m1.columns == m2.columns){
   vector <vector <T>> m3;
@@ -150,7 +150,7 @@ Matrices<T> operator+ (Matrices<T> &m1, Matrices<T> &m2)
 }
 
 template <typename T>
-Matrices<T> operator- (Matrices<T> &m1, Matrices<T> &m2)
+Matrices<T> operator- (Matrices<T> m1, Matrices<T> m2)
 {
     if (m1.rows == m2.rows && m1.columns == m2.columns){
   vector <vector <T>> m3;
@@ -621,6 +621,9 @@ template <typename T>
 class PCA : public Matrices<T> {
   protected:
   int pc;
+  vector <vector <T>> score;
+  vector <vector <T>> weight;
+  vector <vector <T>> remainder;
   public:
   PCA(vector <vector <T>> data) : Matrices<T>(data){
     if ((*this).rows > (*this).columns) pc = (*this).columns;
@@ -631,8 +634,29 @@ class PCA : public Matrices<T> {
   double enorm();
   void norm();
   PCA<T> nipals();
+  PCA<T> pca_score();
+  PCA<T> pca_weight();
+  PCA<T> pca_remainder();
   using Matrices<T>::operator=;
 };
+
+template <typename T>
+PCA<T> PCA<T>::pca_score(){
+  PCA<T> a((*this).score);
+  return a;
+}
+
+template <typename T>
+PCA<T> PCA<T>::pca_weight(){
+  PCA<T> a((*this).weight);
+  return a;
+}
+
+template <typename T>
+PCA<T> PCA<T>::pca_remainder(){
+  PCA<T> a((*this).remainder);
+  return a;
+}
 
 template <typename T>
 void PCA<T>::center(){
@@ -678,23 +702,38 @@ double PCA<T>::enorm(){
 
 template <typename T>
 PCA<T> PCA<T>::nipals(){
+  double eps = 0.00000001;
   vector <vector <T>> all_matrices;
+  PCA<T> E;
   PCA<T> t;
   PCA<T> t_old;
   PCA<T> p;
-  (*this).center();
-  (*this).norm();
-  for (int i = 0; i < (*this).pc; i++){
-  for (int j = 0; j < (*this).rows; j++){
-    t.matrix.push_back({(*this).matrix.at(j).at(i)});
+  PCA<T> d;
+
+  for (int i = 0; i < (*this).rows; i++){
+    score.push_back({});
+    weight.push_back({});
   }
+
+  E = (*this);
+  E.center();
+  E.norm();
+  for (int i = 0; i < E.pc; i++){
+  for (int j = 0; j < E.rows; j++) t.matrix.push_back({E.matrix.at(j).at(i)});
   t.shape();
-  p = (t.transpose() * (*this) / (t.transpose() * t).matrix.at(0).at(0)).transpose();
+  do{
+  p = (t.transpose() * E / (t.transpose() * t).matrix.at(0).at(0)).transpose();
   p = p / p.enorm();
   t_old = t;
-  t = (*this) * p / (p.transpose() * p).matrix.at(0).at(0);
+  t = E * p / (p.transpose() * p).matrix.at(0).at(0);
+  d = t_old - t;
+  } while (d.enorm() > eps);
+  E = E - (t * p.transpose());
+  for (int j = 0; j < p.rows; j++) weight.at(j).push_back(p.matrix.at(j).at(0));
+  for (int j = 0; j < t.rows; j++) score.at(j).push_back(t.matrix.at(j).at(0));
   t.matrix = {};
   }
-  
+  remainder = E.matrix;
   return t;
 }
+
