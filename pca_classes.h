@@ -5,8 +5,6 @@
 #include <cstring>
 #include <cstdlib>
 #include <exception>
-#include <iostream>
-#include <ostream>
 using namespace std;
 
 template <typename T>
@@ -39,8 +37,8 @@ class Matrices {
   template <typename T1> friend Matrices<T1> operator+ (Matrices<T1>, Matrices<T1>);
   template <typename T1> friend Matrices<T1> operator- (Matrices<T1>, Matrices<T1>);
   template <typename T1> friend Matrices<T1> operator* (Matrices<T1>, Matrices<T1>);
-  template <typename T1> friend Matrices<T1> operator* (Matrices<T1>, const int);
-  template <typename T1> friend Matrices<T1> operator/ (Matrices<T1>, const int);
+  template <typename T1> friend Matrices<T1> operator* (Matrices<T1>, double);
+  template <typename T1> friend Matrices<T1> operator/ (Matrices<T1>, double);
   template <typename T1> friend ostream& operator<< (ostream &, Matrices<T1>);
   template <typename T1> friend istream& operator>> (istream &, Matrices<T1> &);
   Matrices<T> operator= (Matrices<T> data){
@@ -153,14 +151,15 @@ template <typename T>
 Matrices<T> operator- (Matrices<T> m1, Matrices<T> m2)
 {
     if (m1.rows == m2.rows && m1.columns == m2.columns){
-  vector <vector <T>> m3;
+  Matrices<T> m3;
   for (int i = 0; i < m1.matrix.size(); i++){
-    m3.push_back({});
+    m3.matrix.push_back({});
     for (int j = 0; j < m1.matrix.at(0).size(); j++){
-       m3.at(i).push_back(m1.matrix.at(i).at(j) - m2.matrix.at(i).at(j));
+       m3.matrix.at(i).push_back(m1.matrix.at(i).at(j) - m2.matrix.at(i).at(j));
     }
   }
-  return Matrices(m3);
+  m3.shape();
+  return m3;
     }
     else throw 0;
 }
@@ -170,7 +169,7 @@ Matrices<T> operator* (Matrices<T> m1, Matrices<T> m2)
 {
     if (m1.columns == m2.rows){
   Matrices<T> m3;
-  int sum = 0;
+  double sum = 0;
   for (int i = 0; i < m1.matrix.size(); i++){ //row
     m3.matrix.push_back({});
     for (int j = 0; j < m2.matrix.at(0).size(); j++){ //column
@@ -188,7 +187,7 @@ Matrices<T> operator* (Matrices<T> m1, Matrices<T> m2)
 }
 
 template <typename T>
-Matrices<T> operator* (Matrices<T> m1, const int a)
+Matrices<T> operator* (Matrices<T> m1, double a)
 {
   Matrices<T> m3;
   for (int i = 0; i < m1.matrix.size(); i++){
@@ -202,7 +201,7 @@ Matrices<T> operator* (Matrices<T> m1, const int a)
 }
 
 template <typename T>
-Matrices<T> operator/ (Matrices<T> m1, const int a)
+Matrices<T> operator/ (Matrices<T> m1, double a)
 {
   Matrices<T> m3;
   for (int i = 0; i < m1.matrix.size(); i++){
@@ -632,8 +631,9 @@ class PCA : public Matrices<T> {
   PCA() : Matrices<T>(){}
   void center();
   double enorm();
+  void get_pc();
   void norm();
-  PCA<T> nipals();
+  void nipals();
   PCA<T> pca_score();
   PCA<T> pca_weight();
   PCA<T> pca_remainder();
@@ -643,6 +643,12 @@ class PCA : public Matrices<T> {
   void variation();
   using Matrices<T>::operator=;
 };
+
+template <typename T>
+void PCA<T>::get_pc(){
+  if ((*this).rows > (*this).columns) pc = (*this).columns;
+  else pc = (*this).rows;
+}
 
 template <typename T>
 void PCA<T>::variation(){
@@ -761,7 +767,7 @@ double PCA<T>::enorm(){
 }
 
 template <typename T>
-PCA<T> PCA<T>::nipals(){
+void PCA<T>::nipals(){
   double eps = 0.00000001;
   vector <vector <T>> all_matrices;
   PCA<T> E;
@@ -769,11 +775,9 @@ PCA<T> PCA<T>::nipals(){
   PCA<T> t_old;
   PCA<T> p;
   PCA<T> d;
+  int time_step = 0;
 
-  for (int i = 0; i < (*this).rows; i++){
-    score.push_back({});
-    weight.push_back({});
-  }
+  (*this).get_pc();
 
   E = (*this);
   E.center();
@@ -789,11 +793,19 @@ PCA<T> PCA<T>::nipals(){
   d = t_old - t;
   } while (d.enorm() > eps);
   E = E - (t * p.transpose());
+  if (time_step == 0){
+    for (int i = 0; i < t.rows; i++){
+      score.push_back({});
+    }
+
+    for (int i = 0; i < p.rows; i++){
+      weight.push_back({});
+    }
+  }
   for (int j = 0; j < p.rows; j++) weight.at(j).push_back(p.matrix.at(j).at(0));
   for (int j = 0; j < t.rows; j++) score.at(j).push_back(t.matrix.at(j).at(0));
   t.matrix = {};
+  time_step = 1;
   }
   remainder = E.matrix;
-  return t;
 }
-
